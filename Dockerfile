@@ -121,6 +121,7 @@ COPY --from=builder /app/public/_spa-workbench /app/public/_spa-workbench
 # Copy database migrations
 COPY --from=builder /app/packages/database/migrations /app/migrations
 COPY --from=builder /app/scripts/migrateServerDB/docker.cjs /app/docker.cjs
+COPY --from=builder /app/scripts/migrateServerDB/searchProvider.cjs /app/searchProvider.cjs
 COPY --from=builder /app/scripts/migrateServerDB/errorHint.js /app/errorHint.js
 COPY --from=builder /app/fts-search-elasticsearch-reindex.cjs /app/fts-search-elasticsearch-reindex.cjs
 COPY --from=builder /app/fts-search-elasticsearch-sync.cjs /app/fts-search-elasticsearch-sync.cjs

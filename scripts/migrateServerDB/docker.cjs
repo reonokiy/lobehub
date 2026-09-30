@@ -1,7 +1,7 @@
 const path = require('node:path');
 const { Pool } = require('pg');
 const { drizzle } = require('drizzle-orm/node-postgres');
-const migrator = require('drizzle-orm/node-postgres/migrator');
+const migrator = require('./searchProvider.cjs');
 const { PGVECTOR_HINT } = require('./errorHint');
 
 if (!process.env.DATABASE_URL) {
