@@ -5,11 +5,14 @@ import path from 'node:path';
 import { Command } from 'commander';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getTrpcClient } from '../api/client';
+import { createPublicLambdaClient, getTrpcClient } from '../api/client';
 import { registerVerifyCommand } from './verify';
 import { registerAcceptanceCommands } from './verifyAcceptance';
 
-vi.mock('../api/client', () => ({ getTrpcClient: vi.fn() }));
+vi.mock('../api/client', () => ({
+  createPublicLambdaClient: vi.fn(),
+  getTrpcClient: vi.fn(),
+}));
 
 const content = '---\nname: acceptance\nmetadata:\n  version: "0.5.0"\n---\n# Acceptance\n';
 const bundle = {
@@ -46,6 +49,11 @@ describe('acceptance skill installation', () => {
     directory = await mkdtemp(path.join(tmpdir(), 'acceptance-distribution-'));
     vi.spyOn(console, 'log').mockImplementation(() => {});
     query.mockReset().mockResolvedValue(bundle);
+    vi.mocked(createPublicLambdaClient)
+      .mockReset()
+      .mockReturnValue({
+        verify: { getSkillBundle: { query } },
+      } as unknown as ReturnType<typeof createPublicLambdaClient>);
     vi.mocked(getTrpcClient)
       .mockReset()
       .mockResolvedValue({
@@ -58,9 +66,10 @@ describe('acceptance skill installation', () => {
     await rm(directory, { force: true, recursive: true });
   });
 
-  it('installs every source resource through the authenticated server and wires Claude', async () => {
+  it('installs every source resource through the anonymous server client and wires Claude', async () => {
     await mkdir(path.join(directory, '.claude'));
 
+    vi.mocked(getTrpcClient).mockRejectedValue(new Error('Not authenticated'));
     await run('install');
 
     const skillDir = path.join(directory, '.agents/skills/acceptance');
@@ -69,7 +78,8 @@ describe('acceptance skill installation', () => {
       expect(await readFile(path.join(skillDir, file), 'utf8')).toBe(expected);
     }
     expect(await readlink(path.join(directory, '.claude/skills'))).toBe('../.agents/skills');
-    expect(getTrpcClient).toHaveBeenCalled();
+    expect(createPublicLambdaClient).toHaveBeenCalled();
+    expect(getTrpcClient).not.toHaveBeenCalled();
     expect(query).toHaveBeenCalledWith({ identifier: 'acceptance' });
     expect(JSON.parse(vi.mocked(console.log).mock.calls.at(-1)![0] as string)).toMatchObject({
       skill: 'acceptance',
@@ -170,6 +180,7 @@ describe('acceptance skill installation', () => {
       content,
     );
     expect(getTrpcClient).toHaveBeenCalled();
+    expect(createPublicLambdaClient).not.toHaveBeenCalled();
     expect(query).toHaveBeenCalledWith({ identifier: 'verify' });
   });
 
@@ -178,6 +189,8 @@ describe('acceptance skill installation', () => {
     vi.mocked(getTrpcClient).mockRejectedValueOnce(new Error('Not authenticated'));
 
     await expect(run('update')).rejects.toThrow('Not authenticated');
+    expect(getTrpcClient).toHaveBeenCalledTimes(1);
+    expect(createPublicLambdaClient).toHaveBeenCalledTimes(1);
     expect(await readFile(path.join(directory, '.agents/skills/acceptance/SKILL.md'), 'utf8')).toBe(
       content,
     );
