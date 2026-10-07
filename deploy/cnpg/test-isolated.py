@@ -89,7 +89,7 @@ exec postgres -D /data/primary -k /pgsocket -c listen_addresses='' "$@"
             time.sleep(0.5)
         else:
             raise RuntimeError("Physical standby did not replay searchable data")
-        assert sql("SELECT count(*) FROM drizzle.__drizzle_migrations", "lobehub", 5433) == "167"
+        assert sql("SELECT count(*) FROM drizzle.__drizzle_migrations", "lobehub", 5433) == "176"
         assert sql("SELECT id FROM cnpg_vector_probe ORDER BY embedding <-> '[1,0,0]' LIMIT 1", "lobehub", 5433) == "1"
         assert sql("SELECT 1", "postgres", 5433) == "1"
         print("PASS: physical base backup, WAL replay, LobeHub ILIKE/vector queries and unrelated database on standby", flush=True)

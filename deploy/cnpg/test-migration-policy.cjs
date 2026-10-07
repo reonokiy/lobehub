@@ -7,7 +7,7 @@ const migrations = readMigrationFiles({ migrationsFolder: '/app/migrations' });
 
 test('pg_like preserves every migration timestamp and original hash', () => {
   const prepared = prepareMigrations(migrations, 'pg_like');
-  assert.equal(prepared.length, 167);
+  assert.equal(prepared.length, 176);
   assert.deepEqual(prepared.map(({ hash, folderMillis }) => ({ hash, folderMillis })),
     migrations.map(({ hash, folderMillis }) => ({ hash, folderMillis })));
   for (const [index, migration] of migrations.entries()) {

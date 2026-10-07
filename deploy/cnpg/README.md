@@ -1,6 +1,6 @@
 # CNPG deployment image
 
-This fork maintains `cnpg-pg-like` from LobeHub v2.2.18. The image build reuses
+This fork maintains the CNPG compatibility layer for LobeHub v2.2.19. The image build reuses
 the digest-pinned official runtime and frontend, and copies this fork's migration
 runner and signing-key adapter into it. It does not rebuild the unchanged web
 frontend. The original upstream Dockerfile also includes the migration helper
@@ -33,7 +33,7 @@ python3 deploy/cnpg/test-isolated.py lobehub-cnpg:local
 ```
 
 The isolated test uses the pinned production PG18 and pgvector binaries,
-ordinary application ownership, all 167 real Drizzle migrations, original
+ordinary application ownership, the 2.2.18-to-2.2.19 upgrade (167 to 176 real Drizzle migrations), preserved records, original
 journal hashes, repeated migration, Unicode ILIKE and vector/HNSW queries,
 physical backup and WAL replay. It uses no production credentials and exposes
 no ports. It does not establish a completed human OIDC login or AI conversation.
