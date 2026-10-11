@@ -99,6 +99,8 @@ import { LayersEnum, MemorySourceType, TypesEnum } from '@/types/userMemory';
 import { trimBasedOnBatchProbe } from '@/utils/chunkers';
 import { encodeAsync } from '@/utils/tokenizer';
 
+import { boundMemoryEmbeddingInput } from './embeddingInputLimit.cjs';
+
 const SOURCE_ALIAS_MAP: Record<string, MemorySourceType> = {
   benchmark_locomo: MemorySourceType.BenchmarkLocomo,
   chatTopic: MemorySourceType.ChatTopic,
@@ -905,7 +907,10 @@ export class MemoryExtractionExecutor {
       for (const [index, text] of texts.entries()) {
         if (typeof text !== 'string') continue;
 
-        const trimmed = await this.trimTextToTokenLimit(text, tokenLimit);
+        const trimmed = boundMemoryEmbeddingInput(
+          await this.trimTextToTokenLimit(text, tokenLimit),
+          tokenLimit,
+        );
         if (!trimmed.trim()) continue;
 
         requests.push({ index, text: trimmed });
@@ -1414,19 +1419,24 @@ export class MemoryExtractionExecutor {
     const userMemoryModel = new UserMemoryModel(db, userId, ftsSearchRepo);
     // TODO: make topK configurable
     const topK = 10;
-    const aggregatedContent = await this.trimTextToTokenLimit(
-      conversations.map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`).join('\n\n'),
+    const aggregatedContent = boundMemoryEmbeddingInput(
+      await this.trimTextToTokenLimit(
+        conversations.map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`).join('\n\n'),
+        tokenLimit,
+      ),
       tokenLimit,
     );
 
-    const embeddings = await runtime.embeddings(
-      {
-        dimensions: DEFAULT_USER_MEMORY_EMBEDDING_DIMENSIONS,
-        input: [aggregatedContent],
-        model: embeddingModel,
-      },
-      { metadata: { trigger: RequestTrigger.Memory }, user: userId },
-    );
+    const embeddings = aggregatedContent
+      ? await runtime.embeddings(
+          {
+            dimensions: DEFAULT_USER_MEMORY_EMBEDDING_DIMENSIONS,
+            input: [aggregatedContent],
+            model: embeddingModel,
+          },
+          { metadata: { trigger: RequestTrigger.Memory }, user: userId },
+        )
+      : [];
 
     const vector = embeddings?.[0];
     if (vector) {

@@ -1,6 +1,8 @@
 name: CNPG compatible image
 
 on:
+  pull_request:
+    branches: [cnpg-pg-like]
   push:
     branches: [cnpg-pg-like]
   workflow_dispatch:
@@ -36,12 +38,14 @@ jobs:
       - name: Test migration policy, signing keys and PG18 physical replication
         run: python3 deploy/cnpg/test-isolated.py lobehub-cnpg:test
       - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish tested image
+        if: github.event_name != 'pull_request'
         id: publish
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
@@ -54,6 +58,7 @@ jobs:
           provenance: mode=max
           sbom: true
       - name: Image summary
+        if: github.event_name != 'pull_request'
         env:
           DIGEST: ${{ steps.publish.outputs.digest }}
         run: echo "Published ghcr.io/reonokiy/lobehub@$DIGEST" >> "$GITHUB_STEP_SUMMARY"
