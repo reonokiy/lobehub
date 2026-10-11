@@ -67,9 +67,12 @@ exec postgres -D /data/primary -k /pgsocket -c listen_addresses='' "$@"
             raise RuntimeError("PG18 did not become ready")
         sql("CREATE ROLE lobehub LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE DATABASE lobehub OWNER lobehub;")
         sql("CREATE EXTENSION vector VERSION '0.8.6';", "lobehub")
-        for script, arguments in [("test-jwks.cjs", ["--test"]), ("test-migration-policy.cjs", ["--test"]), ("test-database.cjs", [])]:
+        for script, arguments in [("test-memory-embedding-limit.cjs", ["--test"]), ("test-jwks.cjs", ["--test"]), ("test-migration-policy.cjs", ["--test"]), ("test-database.cjs", [])]:
             result = docker("run", "--rm", "--network", "none", "--cap-drop", "ALL",
                             "--security-opt", "no-new-privileges", "--read-only", "--tmpfs", "/tmp",
+                            "-e", "MEMORY_LIMIT_HELPER_PATH=/app/memory-embedding-input-limit.cjs",
+                            "-e", "MEMORY_LIMIT_CHUNKS=/app/.next/server/chunks",
+                            "-e", "MEMORY_USER_MEMORY_EMBEDDING_CONTEXT_LIMIT=7000",
                             "--mount", f"type=bind,src={socket},dst=/pgsocket",
                             "--mount", f"type=bind,src={HERE / script},dst=/app/{script},readonly",
                             APP_IMAGE, *arguments, "/app/" + script)

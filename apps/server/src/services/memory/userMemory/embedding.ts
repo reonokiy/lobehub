@@ -6,6 +6,8 @@ import { parseMemoryExtractionConfig } from '@/server/globalConfig/parseMemoryEx
 import { trimBasedOnBatchProbe } from '@/utils/chunkers';
 import { encodeAsync } from '@/utils/tokenizer';
 
+import { boundMemoryEmbeddingInput } from './embeddingInputLimit.cjs';
+
 export interface UserMemoryEmbeddingRuntime {
   /**
    * Runtime embedding method used by memory-specific call sites.
@@ -81,7 +83,10 @@ export const embedUserMemoryTexts = async (
     const trimmedValue = value.trim();
     if (!trimmedValue) continue;
 
-    const text = tokenLimit ? await trimBasedOnBatchProbe(trimmedValue, tokenLimit) : trimmedValue;
+    const text = boundMemoryEmbeddingInput(
+      tokenLimit ? await trimBasedOnBatchProbe(trimmedValue, tokenLimit) : trimmedValue,
+      tokenLimit,
+    );
     const normalizedText = text.trim();
     if (!normalizedText) continue;
 
