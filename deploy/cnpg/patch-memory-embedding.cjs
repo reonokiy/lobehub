@@ -5,9 +5,9 @@ const path = require('node:path');
 // The compatibility image reuses this exact upstream runtime. A different
 // compilation must be reviewed rather than silently omitting the fix.
 const ORIGINAL_HASHES = {
-  '_1d_4qrr._.js': '71f3d5ccd186dab334a7b42a0a465ead35cf63140a056ac1292f589f199de78d',
-  '_1tr4zf2._.js': 'd6422d81ac03da9ac2bd0fb1306fc5af55264cfe055b866a639666bc9dca6aff',
-  '_06-2yjp._.js': '0c2ca0a13fef47472feb909bad171e3ef4418f7cab332c8290825c2d1657d760',
+  '_1d_4qrr._.js': 'a5f4921d469430048be155fbf54cc8b2677b80530fbdef3941aae20fc9fe3916',
+  '_0andha6._.js': 'f8618241adeba00238b48a609179b68e4d504db3d7edecb3cd7393d0c0fee7f7',
+  '_1h4uq48._.js': '3a4cafffa25aa6906ed38f601d9ff9b7134dc0a109af69ab03bd39d724b79458',
 };
 
 function replaceOnce(source, oldText, newText) {
@@ -20,22 +20,16 @@ function replaceOnce(source, oldText, newText) {
 function patchedSource(name, source, helperPath) {
   const guard = `require(${JSON.stringify(helperPath)}).boundMemoryEmbeddingInput`;
   if (name === '_1d_4qrr._.js') {
-    source = replaceOnce(
-      source,
-      'let r=await this.trimTextToTokenLimit(t,i);r.trim()&&',
-      `let r=${guard}(await this.trimTextToTokenLimit(t,i),i);r.trim()&&`,
-    );
-    source = replaceOnce(
-      source,
-      'l=await this.trimTextToTokenLimit(i.map(e=>`${e.role.toUpperCase()}: ${e.content}`).join("\\n\\n"),s),u=await t.embeddings({dimensions:n.DEFAULT_USER_MEMORY_EMBEDDING_DIMENSIONS,input:[l],model:r},{metadata:{trigger:g.RequestTrigger.Memory},user:a}),m=u?.[0];',
-      `l=${guard}(await this.trimTextToTokenLimit(i.map(e=>\`\${e.role.toUpperCase()}: \${e.content}\`).join("\\n\\n"),s),s),u=l?await t.embeddings({dimensions:n.DEFAULT_USER_MEMORY_EMBEDDING_DIMENSIONS,input:[l],model:r},{metadata:{trigger:g.RequestTrigger.Memory},user:a}):[],m=u?.[0];`,
-    );
+    source = replaceOnce(source,
+      'let r=await (0,V.trimEmbeddingInput)(n,t,i);r.trim()&&',
+      `let r=${guard}(await (0,V.trimEmbeddingInput)(n,t,i),i);r.trim()&&`);
+    source = replaceOnce(source,
+      'l=await (0,V.trimEmbeddingInput)(i.map(e=>`${e.role.toUpperCase()}: ${e.content}`).join("\\n\\n"),r,s),u=await t.embeddings(',
+      `l=${guard}(await (0,V.trimEmbeddingInput)(i.map(e=>\`\${e.role.toUpperCase()}: \${e.content}\`).join("\\n\\n"),r,s),s),u=await t.embeddings(`);
   } else {
-    source = replaceOnce(
-      source,
-      'let o=(n?await (0,i.trimBasedOnBatchProbe)(r,n):r).trim();',
-      `let o=${guard}(n?await (0,i.trimBasedOnBatchProbe)(r,n):r,n);`,
-    );
+    source = replaceOnce(source,
+      'let o=(await (0,a.trimEmbeddingInput)(r,e.model,n)).trim();',
+      `let o=${guard}(await (0,a.trimEmbeddingInput)(r,e.model,n),n);`);
   }
   return source;
 }
