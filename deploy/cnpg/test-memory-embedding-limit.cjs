@@ -52,7 +52,7 @@ test('built production runtime protects all four reviewed embedding call sites',
 }, () => {
   const root = process.env.MEMORY_LIMIT_CHUNKS;
   const guard = 'require("/app/memory-embedding-input-limit.cjs").boundMemoryEmbeddingInput';
-  for (const [name, count] of [['_1d_4qrr._.js', 2], ['_1tr4zf2._.js', 1], ['_06-2yjp._.js', 1]]) {
+  for (const [name, count] of [['_1d_4qrr._.js', 2], ['_0andha6._.js', 1], ['_1h4uq48._.js', 1]]) {
     const source = fs.readFileSync(path.join(root, name), 'utf8');
     assert.equal(source.split(guard).length - 1, count);
   }
@@ -68,14 +68,14 @@ test('compiled memory generation completes for the numeric input that exceeded 8
   const method = source.slice(start, end);
   const statuses = { OK: 1, ERROR: 2 };
   const span = { setAttribute() {}, setStatus() {}, recordException() {}, end() {} };
-  const Runtime = new Function('require', 'n', 'p', 'h', 'y', 'm', 'g',
+  const Runtime = new Function('require', 'n', 'p', 'h', 'y', 'm', 'g', 'V',
     `return class Runtime { async trimTextToTokenLimit(text) { return text; } ${method} }`,
   )(require,
     { DEFAULT_USER_MEMORY_EMBEDDING_DIMENSIONS: 1536 },
     { ATTR_GEN_AI_OPERATION_NAME: 'operation', ATTR_GEN_AI_REQUEST_MODEL: 'model' },
     { attributesCommon: () => ({}) },
     { tracer: { startActiveSpan: (_name, _options, callback) => callback(span) } },
-    { SpanStatusCode: statuses }, { RequestTrigger: { Memory: 'memory' } });
+    { SpanStatusCode: statuses }, { RequestTrigger: { Memory: 'memory' } }, { trimEmbeddingInput: async text => text });
   const text = '1234567890'.repeat(3000);
   let sent;
   const result = await new Runtime().generateEmbeddings({
@@ -100,14 +100,14 @@ test('compiled retrieval bounds its conversation embedding and reaches search', 
   assert.ok(start > 0 && end > start);
   const method = source.slice(start, end);
   const expectedSearch = { activities: ['synthetic-memory'] };
-  const Runtime = new Function('require', 'n', 'z', 'M', 'g', 'A', 'B',
+  const Runtime = new Function('require', 'n', 'z', 'M', 'g', 'A', 'B', 'V',
     `return class Runtime { db = Promise.resolve({}); async trimTextToTokenLimit(text) { return text; } ${method} }`,
   )(require, { DEFAULT_USER_MEMORY_EMBEDDING_DIMENSIONS: 1536 },
     { createFtsSearchRepo: async () => ({}) },
     { UserMemoryModel: class { async searchMemory() { return expectedSearch; } } },
     { RequestTrigger: { Memory: 'memory' } },
     { normalizeUserMemorySearchQueries: value => value, shouldRunUserMemoryLexicalSearch: () => false },
-    { recordUserMemoryLexicalSearchDecision() {} });
+    { recordUserMemoryLexicalSearchDecision() {} }, { trimEmbeddingInput: async text => text });
   let sent;
   const result = await new Runtime().listRelevantUserMemories({}, {
     async embeddings(payload) {
